@@ -1,0 +1,7 @@
+# Kbuild file for NYMPH 1.1 Thermal Driver
+# Used when building as part of kernel tree
+
+obj-$(CONFIG_NYMPH_THERMAL) += nymph_thermal.o
+
+nymph_thermal-objs := nymph_thermal.o
+
