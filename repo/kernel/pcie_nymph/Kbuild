@@ -1,0 +1,7 @@
+# Kbuild file for NYMPH 1.1 PCIe Driver
+# Used when building as part of kernel tree
+
+obj-$(CONFIG_PCIE_NYMPH) += pcie_nymph.o
+
+pcie_nymph-objs := pcie_nymph.o
+

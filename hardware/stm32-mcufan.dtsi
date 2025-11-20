@@ -1,0 +1,59 @@
+/* STM32F030 fan PWM/TACH + NTC ADC definitions go here.
+ * Bind to i2c or uart management node when MCU firmware is ready.
+ */
+
+&i2c1 {
+	status = "okay";
+	
+	/* STM32F030F4P6 Management MCU */
+	mcu@50 {
+		compatible = "st,stm32f030";
+		reg = <0x50>;
+		
+		/* Fan control - Sunon MB50101V2-A99 (50mm PWM blower) */
+		fan {
+			compatible = "pwm-fan";
+			pwms = <&pwm0 0 25000 0>; /* 25kHz PWM */
+			cooling-levels = <0 50 100 150 200 255>;
+			
+			/* TACH feedback */
+			tach-pin = <&gpio1 0 GPIO_ACTIVE_HIGH>;
+		};
+		
+		/* NTC thermistors - EPCOS B57560G104F (100kΩ @ 25°C) */
+		thermal-sensors {
+			compatible = "ntc-thermistor";
+			
+			ntc-soc {
+				compatible = "epcos,b57560g104f";
+				io-channels = <&adc 0>;
+				pullup-uv = <1800000>;
+				pullup-ohm = <100000>;
+				pulldown-ohm = <0>;
+			};
+			
+			ntc-vrm {
+				compatible = "epcos,b57560g104f";
+				io-channels = <&adc 1>;
+				pullup-uv = <1800000>;
+				pullup-ohm = <100000>;
+				pulldown-ohm = <0>;
+			};
+			
+			ntc-npu {
+				compatible = "epcos,b57560G104f";
+				io-channels = <&adc 2>;
+				pullup-uv = <1800000>;
+				pullup-ohm = <100000>;
+				pulldown-ohm = <0>;
+			};
+		};
+		
+		/* LED status control - WS2812B */
+		leds {
+			compatible = "ws2812";
+			led-pin = <&gpio1 1 GPIO_ACTIVE_HIGH>;
+		};
+	};
+};
+

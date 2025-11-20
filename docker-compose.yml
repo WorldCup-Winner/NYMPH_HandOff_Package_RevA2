@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  nymph-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: nymph-dev
+    volumes:
+      - .:/workspace
+      - buildroot-cache:/buildroot/dl
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    environment:
+      - BUILDROOT_DIR=/buildroot
+    networks:
+      - nymph-network
+
+volumes:
+  buildroot-cache:
+
+networks:
+  nymph-network:
+    driver: bridge
+

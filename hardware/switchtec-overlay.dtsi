@@ -1,0 +1,81 @@
+/* Switchtec PFX PM40100-B0 overlay — uplink x8 → downlinks:
+ * DL0 (x4) RK3588, DL1 (x4) NVMe, DL2–DL5 (x2 each) M.2 Key-E.
+ * Add PERST#/CLKREQ#/WAKE# GPIOs and refclk distribution as properties.
+ */
+
+&pcie0 {
+	status = "okay";
+	
+	/* Switchtec PM40100-B0 PCIe Switch */
+	switchtec@0 {
+		compatible = "microchip,switchtec-pfx";
+		reg = <0x0 0x0 0x0 0x100000>;
+		
+		/* Uplink: Gen4 x8 from host */
+		/* Downlinks:
+		 * DL0: RK3588 (Gen4 x4) - Root Complex
+		 * DL1: NVMe (Gen3 x4) - Storage
+		 * DL2: M.2 Key-E #1 (Gen3 x2) - NPU 1
+		 * DL3: M.2 Key-E #2 (Gen3 x2) - NPU 2
+		 * DL4: M.2 Key-E #3 (Gen3 x2) - NPU 3
+		 * DL5: M.2 Key-E #4 (Gen3 x2) - NPU 4
+		 */
+		
+		/* Control signals */
+		perst-gpio = <&gpio0 0 GPIO_ACTIVE_LOW>;
+		clkreq-gpio = <&gpio0 1 GPIO_ACTIVE_LOW>;
+		wake-gpio = <&gpio0 2 GPIO_ACTIVE_LOW>;
+	};
+};
+
+/* NVMe endpoint (DL1) */
+&pcie1 {
+	status = "okay";
+	
+	nvme@0 {
+		compatible = "pci17aa,0100";
+		reg = <0x0 0x0 0x0 0x0>;
+	};
+};
+
+/* M.2 Key-E endpoints (DL2-DL5) for NPUs */
+&pcie2 {
+	status = "okay";
+	
+	/* Kneron KL730 NPU #1 */
+	npu1@0 {
+		compatible = "pci1e3e,7300";
+		reg = <0x0 0x0 0x0 0x0>;
+	};
+};
+
+&pcie3 {
+	status = "okay";
+	
+	/* Kneron KL730 NPU #2 */
+	npu2@0 {
+		compatible = "pci1e3e,7300";
+		reg = <0x0 0x0 0x0 0x0>;
+	};
+};
+
+&pcie4 {
+	status = "okay";
+	
+	/* Kneron KL730 NPU #3 */
+	npu3@0 {
+		compatible = "pci1e3e,7300";
+		reg = <0x0 0x0 0x0 0x0>;
+	};
+};
+
+&pcie5 {
+	status = "okay";
+	
+	/* Kneron KL730 NPU #4 */
+	npu4@0 {
+		compatible = "pci1e3e,7300";
+		reg = <0x0 0x0 0x0 0x0>;
+	};
+};
+

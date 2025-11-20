@@ -1,0 +1,31 @@
+/dts-v1/;
+
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+
+/ {
+	model = "NYMPH 1.1 Rev-A2";
+	compatible = "rockchip,rk3588-nymph";
+
+	/* Root node; include vendor RK3588 dtsi here when integrating the BSP. */
+	
+	aliases {
+		ethernet0 = &gmac0;
+		mmc0 = &sdhci;
+	};
+
+	chosen {
+		stdout-path = "serial2:115200n8";
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x0 0x0 0x0 0x80000000>; /* 2GB - adjust based on actual RAM */
+	};
+
+	/* Include overlays */
+	#include "switchtec-overlay.dtsi"
+	#include "stm32-mcufan.dtsi"
+	#include "pmbus-tps53667.dtsi"
+};
+

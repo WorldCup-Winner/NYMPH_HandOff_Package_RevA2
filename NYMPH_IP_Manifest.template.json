@@ -1,0 +1,21 @@
+{
+  "build": "NYMPH_HandOff_Package_RevA2",
+  "features": {
+    "ZLTA2": "ON",
+    "TAITO": "ON",
+    "TAPIM": "ON",
+    "KV_PINNING": "ON",
+    "S_QUANTUM_EDF": "ON",
+    "SAIR": "ON",
+    "VAULT_OTA": "ON"
+  },
+  "evidence": {
+    "fabric": "dist/fabric_status.json",
+    "bench": "dist/bench.json",
+    "thermal": "dist/thermal.log",
+    "squantum_trace": "dist/squantum_trace.json",
+    "attestation": "dist/attestation.log",
+    "ota": "dist/ota.log"
+  }
+}
+
