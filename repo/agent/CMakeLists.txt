@@ -12,6 +12,7 @@ set(SOURCES
     src/main_agent.cpp
     src/nymph_api.cpp
     src/fabric_zlta.cpp
+    src/ai_onnx.cpp
 )
 
 # Create executable

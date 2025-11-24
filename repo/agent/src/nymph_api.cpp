@@ -5,6 +5,7 @@
 
 #include "nymph_api.hpp"
 #include "fabric_zlta.hpp"
+#include "ai_onnx.hpp"
 #include "logger.hpp"
 #include <sstream>
 #include <ctime>
@@ -72,22 +73,53 @@ APIResponse api_fabric_verify(const APIRequest& req) {
     }
 }
 
-/* POST /infer - AI inference (stub) */
+/* Global ONNX Runtime instance */
+static std::unique_ptr<nymph::ai::ONNXRuntime> g_onnx_runtime = nullptr;
+
+static nymph::ai::ONNXRuntime& get_onnx_runtime() {
+    if (!g_onnx_runtime) {
+        g_onnx_runtime = std::make_unique<nymph::ai::ONNXRuntime>();
+        g_onnx_runtime->initialize();
+    }
+    return *g_onnx_runtime;
+}
+
+/* POST /infer - AI inference */
 APIResponse api_infer(const APIRequest& req) {
     log::info("POST /infer");
 
-    // Parse request (stub - just return success)
-    // In real implementation, parse JSON and call ONNX runtime
+    try {
+        // Parse inference request from JSON body
+        nymph::ai::InferenceRequest inference_req = nymph::ai::parse_inference_request(req.body);
+        
+        log::info("Inference request - model: " + inference_req.model_name + 
+                  ", profile: " + inference_req.profile);
 
-    // Stub response
-    std::stringstream json;
-    json << "{\n"
-         << "  \"latency_ms\": 120.5,\n"
-         << "  \"output\": \"[STUB] Inference result for: " << req.body.substr(0, 50) << "...\",\n"
-         << "  \"energy_wh\": 0.05\n"
-         << "}";
+        // Get ONNX runtime and run inference
+        nymph::ai::ONNXRuntime& runtime = get_onnx_runtime();
+        nymph::ai::InferenceResult result = runtime.run_inference(inference_req);
 
-    return APIResponse(200, "application/json", json.str());
+        if (!result.success) {
+            std::stringstream json;
+            json << "{\n"
+                 << "  \"error\": \"" << result.error_message << "\"\n"
+                 << "}";
+            return APIResponse(500, "application/json", json.str());
+        }
+
+        // Format result as JSON
+        std::string json_result = nymph::ai::format_inference_result(result);
+        return APIResponse(200, "application/json", json_result);
+
+    } catch (const std::exception& e) {
+        log::error("Inference failed: " + std::string(e.what()));
+        std::stringstream json;
+        json << "{\n"
+             << "  \"error\": \"Inference failed\",\n"
+             << "  \"message\": \"" << e.what() << "\"\n"
+             << "}";
+        return APIResponse(500, "application/json", json.str());
+    }
 }
 
 /* POST /kv/pin - KV cache pinning (stub) */
