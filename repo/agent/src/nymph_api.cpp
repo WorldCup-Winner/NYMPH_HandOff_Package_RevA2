@@ -21,6 +21,7 @@ static std::chrono::steady_clock::time_point start_time = std::chrono::steady_cl
 
 /* GET /status - System status and telemetry */
 APIResponse api_status(const APIRequest& req) {
+    (void)req;  // Unused for GET requests
     log::info("GET /status");
 
     auto now = std::chrono::steady_clock::now();
@@ -43,6 +44,7 @@ APIResponse api_status(const APIRequest& req) {
 
 /* GET /fabric/verify - DMA fabric verification status */
 APIResponse api_fabric_verify(const APIRequest& req) {
+    (void)req;  // Unused for GET requests
     log::info("GET /fabric/verify");
 
     try {
@@ -124,6 +126,7 @@ APIResponse api_infer(const APIRequest& req) {
 
 /* POST /kv/pin - KV cache pinning (stub) */
 APIResponse api_kvpin(const APIRequest& req) {
+    (void)req;  // Unused in stub mode
     log::info("POST /kv/pin");
 
     // Stub response
@@ -137,6 +140,7 @@ APIResponse api_kvpin(const APIRequest& req) {
 
 /* POST /squantum/run - Quantum-inspired optimization (stub) */
 APIResponse api_squantum_run(const APIRequest& req) {
+    (void)req;  // Unused in stub mode
     log::info("POST /squantum/run");
 
     // Stub response
@@ -151,6 +155,7 @@ APIResponse api_squantum_run(const APIRequest& req) {
 
 /* POST /thermal/schedule - Thermal policy (stub) */
 APIResponse api_thermal_schedule(const APIRequest& req) {
+    (void)req;  // Unused in stub mode
     log::info("POST /thermal/schedule");
 
     // Stub response
@@ -164,6 +169,7 @@ APIResponse api_thermal_schedule(const APIRequest& req) {
 
 /* POST /capsule/run - Attested capsule execution (stub) */
 APIResponse api_capsule_run(const APIRequest& req) {
+    (void)req;  // Unused in stub mode
     log::info("POST /capsule/run");
 
     // Stub response
@@ -178,6 +184,7 @@ APIResponse api_capsule_run(const APIRequest& req) {
 
 /* POST /vault/update - Firmware update (stub) */
 APIResponse api_vault_update(const APIRequest& req) {
+    (void)req;  // Unused in stub mode
     log::info("POST /vault/update");
 
     // Stub response
@@ -192,6 +199,7 @@ APIResponse api_vault_update(const APIRequest& req) {
 
 /* POST /ota/rollback - OTA rollback (stub) */
 APIResponse api_ota_rollback(const APIRequest& req) {
+    (void)req;  // Unused in stub mode
     log::info("POST /ota/rollback");
 
     // Stub response

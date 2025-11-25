@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <thread>
+#include <cstdio>
 
 // TODO: When real ONNX Runtime is available, include:
 // #include <onnxruntime_cxx_api.h>
@@ -30,6 +31,7 @@ ONNXRuntime::~ONNXRuntime() {
 }
 
 bool ONNXRuntime::initialize(const std::string& model_path) {
+    (void)model_path;  // Unused in stub mode
     if (initialized_) {
         return true;
     }
@@ -124,16 +126,12 @@ InferenceResult ONNXRuntime::run_inference_stub(const InferenceRequest& request)
     auto actual_duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     result.latency_ms = actual_duration.count() / 1000.0;
     
-    // Generate stub output
+    // Generate stub output (avoid JSON-like content that could break parsing)
     std::stringstream output;
-    output << "[STUB-ONNX] Inference result for model '" << request.model_name << "':\n";
-    output << "Input: " << request.input_text.substr(0, 100);
-    if (request.input_text.length() > 100) {
-        output << "...";
-    }
-    output << "\n";
-    output << "Generated output (simulated): This is a stub inference result. ";
-    output << "In real implementation, this would be the actual model output.";
+    output << "[STUB-ONNX] Inference result for model: " << request.model_name;
+    output << " | Input length: " << request.input_text.length() << " chars";
+    output << " | Generated output (simulated): This is a stub inference result.";
+    output << " In real implementation, this would be the actual model output.";
     
     result.output = output.str();
     
@@ -151,6 +149,7 @@ InferenceResult ONNXRuntime::run_inference_stub(const InferenceRequest& request)
 }
 
 InferenceResult ONNXRuntime::run_inference_real(const InferenceRequest& request) {
+    (void)request;  // Unused until real implementation
     // TODO: Implement real ONNX Runtime inference
     // This would:
     // 1. Get Ort::Session for the model
@@ -228,9 +227,28 @@ InferenceRequest parse_inference_request(const std::string& json_body) {
         // Check if string value
         if (json_body[pos] == '"') {
             pos++;
-            size_t end = json_body.find("\"", pos);
-            if (end != std::string::npos) {
-                return json_body.substr(pos, end - pos);
+            // Find the closing quote, but handle escaped quotes
+            size_t end = pos;
+            while (end < json_body.length()) {
+                if (json_body[end] == '"' && (end == pos || json_body[end-1] != '\\')) {
+                    break;
+                }
+                end++;
+            }
+            if (end < json_body.length()) {
+                std::string value = json_body.substr(pos, end - pos);
+                // Unescape common escape sequences
+                size_t esc_pos = 0;
+                while ((esc_pos = value.find("\\\"", esc_pos)) != std::string::npos) {
+                    value.replace(esc_pos, 2, "\"");
+                    esc_pos++;
+                }
+                esc_pos = 0;
+                while ((esc_pos = value.find("\\\\", esc_pos)) != std::string::npos) {
+                    value.replace(esc_pos, 2, "\\");
+                    esc_pos++;
+                }
+                return value;
             }
         } else {
             // Number or other value
@@ -267,35 +285,87 @@ std::string format_inference_result(const InferenceResult& result) {
     std::stringstream json;
     json << std::fixed << std::setprecision(2);
     
-    json << "{\n";
-    json << "  \"latency_ms\": " << result.latency_ms << ",\n";
+    // Use compact JSON (single line) for better compatibility
+    json << "{";
+    json << "\"latency_ms\":" << result.latency_ms << ",";
     
-    // Escape output string for JSON
-    std::string escaped_output = result.output;
-    std::replace(escaped_output.begin(), escaped_output.end(), '\n', '\\n');
-    std::replace(escaped_output.begin(), escaped_output.end(), '\r', '\\r');
-    std::replace(escaped_output.begin(), escaped_output.end(), '"', '\\"');
+    // Escape output string for JSON (escape all control characters and special chars)
+    std::string escaped_output;
+    escaped_output.reserve(result.output.length() * 2);  // Reserve space for escaped string
+    for (unsigned char c : result.output) {
+        // Escape control characters (0x00-0x1F) and special JSON characters
+        if (c < 0x20) {
+            // Control characters - escape as \uXXXX or common escapes
+            switch (c) {
+                case '\n':
+                    escaped_output += "\\n";
+                    break;
+                case '\r':
+                    escaped_output += "\\r";
+                    break;
+                case '\t':
+                    escaped_output += "\\t";
+                    break;
+                case '\b':
+                    escaped_output += "\\b";
+                    break;
+                case '\f':
+                    escaped_output += "\\f";
+                    break;
+                default:
+                    // Escape other control chars as \uXXXX
+                    char hex[7];
+                    snprintf(hex, sizeof(hex), "\\u%04x", c);
+                    escaped_output += hex;
+                    break;
+            }
+        } else if (c == '"') {
+            escaped_output += "\\\"";
+        } else if (c == '\\') {
+            escaped_output += "\\\\";
+        } else {
+            escaped_output += c;
+        }
+    }
     
-    json << "  \"output\": \"" << escaped_output << "\",\n";
-    json << "  \"energy_wh\": " << result.energy_wh;
+    json << "\"output\":\"" << escaped_output << "\",";
+    json << "\"energy_wh\":" << result.energy_wh;
     
     // Add metrics if present
     if (!result.metrics.empty()) {
-        json << ",\n  \"metrics\": {\n";
+        json << ",\"metrics\":{";
         bool first = true;
         for (const auto& pair : result.metrics) {
-            if (!first) json << ",\n";
-            json << "    \"" << pair.first << "\": " << pair.second;
+            if (!first) json << ",";
+            json << "\"" << pair.first << "\":" << pair.second;
             first = false;
         }
-        json << "\n  }";
+        json << "}";
     }
     
     if (!result.success && !result.error_message.empty()) {
-        json << ",\n  \"error\": \"" << result.error_message << "\"";
+        // Escape error message too
+        std::string escaped_error;
+        for (unsigned char c : result.error_message) {
+            if (c == '"') escaped_error += "\\\"";
+            else if (c == '\\') escaped_error += "\\\\";
+            else if (c < 0x20) {
+                if (c == '\n') escaped_error += "\\n";
+                else if (c == '\r') escaped_error += "\\r";
+                else if (c == '\t') escaped_error += "\\t";
+                else {
+                    char hex[7];
+                    snprintf(hex, sizeof(hex), "\\u%04x", c);
+                    escaped_error += hex;
+                }
+            } else {
+                escaped_error += c;
+            }
+        }
+        json << ",\"error\":\"" << escaped_error << "\"";
     }
     
-    json << "\n}";
+    json << "}";
     
     return json.str();
 }
