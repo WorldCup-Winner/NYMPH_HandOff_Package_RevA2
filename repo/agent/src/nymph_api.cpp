@@ -6,6 +6,7 @@
 #include "nymph_api.hpp"
 #include "fabric_zlta.hpp"
 #include "ai_onnx.hpp"
+#include "kvpin.hpp"
 #include "logger.hpp"
 #include <sstream>
 #include <ctime>
@@ -124,18 +125,36 @@ APIResponse api_infer(const APIRequest& req) {
     }
 }
 
-/* POST /kv/pin - KV cache pinning (stub) */
+/* POST /kv/pin - KV cache pinning */
 APIResponse api_kvpin(const APIRequest& req) {
-    (void)req;  // Unused in stub mode
     log::info("POST /kv/pin");
 
-    // Stub response
-    std::stringstream json;
-    json << "{\n"
-         << "  \"hit_rate\": 0.85\n"
-         << "}";
+    try {
+        // Parse KV pin request from JSON body
+        nymph::kv::KVPinRequest kvpin_req = nymph::kv::parse_kvpin_request(req.body);
+        
+        log::info("KV pin request - region: " + kvpin_req.region + 
+                  ", size_kb: " + std::to_string(kvpin_req.size_kb));
 
-    return APIResponse(200, "application/json", json.str());
+        // Get KV cache manager and pin region
+        nymph::kv::KVCacheManager& manager = nymph::kv::get_kv_cache_manager();
+        nymph::kv::KVPinResult result = manager.pin_region(kvpin_req);
+
+        // Format result as JSON
+        std::string json_result = nymph::kv::format_kvpin_result(result);
+        
+        if (!result.success) {
+            return APIResponse(400, "application/json", json_result);
+        }
+        
+        return APIResponse(200, "application/json", json_result);
+
+    } catch (const std::exception& e) {
+        log::error("KV pin failed: " + std::string(e.what()));
+        std::stringstream json;
+        json << "{\"error\":\"KV pin failed\",\"message\":\"" << e.what() << "\"}";
+        return APIResponse(500, "application/json", json.str());
+    }
 }
 
 /* POST /squantum/run - Quantum-inspired optimization (stub) */

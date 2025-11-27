@@ -13,6 +13,7 @@ set(SOURCES
     src/nymph_api.cpp
     src/fabric_zlta.cpp
     src/ai_onnx.cpp
+    src/kvpin.cpp
 )
 
 # Create executable
