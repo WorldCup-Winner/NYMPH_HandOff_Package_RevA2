@@ -8,6 +8,7 @@
 #include "ai_onnx.hpp"
 #include "kvpin.hpp"
 #include "thermal_stdio.hpp"
+#include "sair_vault.hpp"
 #include "logger.hpp"
 #include <sstream>
 #include <ctime>
@@ -212,49 +213,95 @@ APIResponse api_thermal_schedule(const APIRequest& req) {
     }
 }
 
-/* POST /capsule/run - Attested capsule execution (stub) */
+/* POST /capsule/run - Attested capsule execution (SAIR) */
 APIResponse api_capsule_run(const APIRequest& req) {
-    (void)req;  // Unused in stub mode
     log::info("POST /capsule/run");
 
-    // Stub response
-    std::stringstream json;
-    json << "{\n"
-         << "  \"verified\": true,\n"
-         << "  \"result\": {}\n"
-         << "}";
+    try {
+        // Parse capsule run request from JSON body
+        nymph::security::CapsuleRunRequest capsule_req = 
+            nymph::security::parse_capsule_request(req.body);
+        
+        log::info("Capsule run request - id: " + capsule_req.id);
 
-    return APIResponse(200, "application/json", json.str());
+        // Get SAIR manager and run capsule
+        nymph::security::SAIRManager& sair = nymph::security::get_sair_manager();
+        nymph::security::CapsuleRunResult result = sair.run_capsule(capsule_req);
+
+        // Format result as JSON
+        std::string json_result = nymph::security::format_capsule_result(result);
+        
+        if (!result.verified) {
+            return APIResponse(409, "application/json", json_result);  // 409 Verification failed
+        }
+        
+        return APIResponse(200, "application/json", json_result);
+
+    } catch (const std::exception& e) {
+        log::error("Capsule run failed: " + std::string(e.what()));
+        std::stringstream json;
+        json << "{\"verified\":false,\"error\":\"" << e.what() << "\"}";
+        return APIResponse(500, "application/json", json.str());
+    }
 }
 
-/* POST /vault/update - Firmware update (stub) */
+/* POST /vault/update - Firmware update (OTA) */
 APIResponse api_vault_update(const APIRequest& req) {
-    (void)req;  // Unused in stub mode
     log::info("POST /vault/update");
 
-    // Stub response
-    std::stringstream json;
-    json << "{\n"
-         << "  \"applied\": true,\n"
-         << "  \"version\": \"v1.1\"\n"
-         << "}";
+    try {
+        // Parse update request
+        nymph::security::OTAUpdateRequest update_req = 
+            nymph::security::parse_update_request(req.body);
+        
+        log::info("OTA update request - version: " + update_req.version);
 
-    return APIResponse(200, "application/json", json.str());
+        // Get Vault manager and apply update
+        nymph::security::VaultManager& vault = nymph::security::get_vault_manager();
+        nymph::security::OTAUpdateResult result = vault.apply_update(update_req);
+
+        // Format result as JSON
+        std::string json_result = nymph::security::format_update_result(result);
+        
+        if (!result.applied && !result.verified) {
+            return APIResponse(400, "application/json", json_result);
+        }
+        
+        return APIResponse(200, "application/json", json_result);
+
+    } catch (const std::exception& e) {
+        log::error("OTA update failed: " + std::string(e.what()));
+        std::stringstream json;
+        json << "{\"applied\":false,\"error\":\"" << e.what() << "\"}";
+        return APIResponse(500, "application/json", json.str());
+    }
 }
 
-/* POST /ota/rollback - OTA rollback (stub) */
+/* POST /ota/rollback - OTA rollback */
 APIResponse api_ota_rollback(const APIRequest& req) {
-    (void)req;  // Unused in stub mode
+    (void)req;  // No body needed for rollback
     log::info("POST /ota/rollback");
 
-    // Stub response
-    std::stringstream json;
-    json << "{\n"
-         << "  \"rolled_back\": true,\n"
-         << "  \"version\": \"v1.0\"\n"
-         << "}";
+    try {
+        // Get Vault manager and rollback
+        nymph::security::VaultManager& vault = nymph::security::get_vault_manager();
+        nymph::security::OTARollbackResult result = vault.rollback();
 
-    return APIResponse(200, "application/json", json.str());
+        // Format result as JSON
+        std::string json_result = nymph::security::format_rollback_result(result);
+        
+        if (!result.rolled_back) {
+            return APIResponse(400, "application/json", json_result);
+        }
+        
+        return APIResponse(200, "application/json", json_result);
+
+    } catch (const std::exception& e) {
+        log::error("OTA rollback failed: " + std::string(e.what()));
+        std::stringstream json;
+        json << "{\"rolled_back\":false,\"error\":\"" << e.what() << "\"}";
+        return APIResponse(500, "application/json", json.str());
+    }
 }
 
 } // namespace api

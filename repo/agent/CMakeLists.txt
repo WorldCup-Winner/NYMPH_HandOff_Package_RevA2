@@ -15,6 +15,7 @@ set(SOURCES
     src/ai_onnx.cpp
     src/kvpin.cpp
     src/thermal_stdio.cpp
+    src/sair_vault.cpp
 )
 
 # Create executable
