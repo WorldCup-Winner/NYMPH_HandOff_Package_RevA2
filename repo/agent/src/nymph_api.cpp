@@ -7,6 +7,7 @@
 #include "fabric_zlta.hpp"
 #include "ai_onnx.hpp"
 #include "kvpin.hpp"
+#include "thermal_stdio.hpp"
 #include "logger.hpp"
 #include <sstream>
 #include <ctime>
@@ -172,18 +173,43 @@ APIResponse api_squantum_run(const APIRequest& req) {
     return APIResponse(200, "application/json", json.str());
 }
 
-/* POST /thermal/schedule - Thermal policy (stub) */
+/* POST /thermal/schedule - Thermal policy (TAITO/TAPIM) */
 APIResponse api_thermal_schedule(const APIRequest& req) {
-    (void)req;  // Unused in stub mode
     log::info("POST /thermal/schedule");
 
-    // Stub response
-    std::stringstream json;
-    json << "{\n"
-         << "  \"ok\": true\n"
-         << "}";
+    try {
+        // Parse thermal schedule request from JSON body
+        nymph::thermal::ThermalScheduleRequest thermal_req = 
+            nymph::thermal::parse_thermal_request(req.body);
+        
+        log::info("Thermal schedule request - policy: " + 
+                  nymph::thermal::policy_to_string(thermal_req.policy) + 
+                  ", target: " + std::to_string(thermal_req.target_temp_c) + "°C");
 
-    return APIResponse(200, "application/json", json.str());
+        // Get thermal manager and set schedule
+        nymph::thermal::ThermalManager& manager = nymph::thermal::get_thermal_manager();
+        
+        // Update readings first
+        manager.update_readings();
+        
+        // Apply schedule
+        nymph::thermal::ThermalScheduleResult result = manager.set_schedule(thermal_req);
+
+        // Format result as JSON
+        std::string json_result = nymph::thermal::format_thermal_result(result);
+        
+        if (!result.ok) {
+            return APIResponse(400, "application/json", json_result);
+        }
+        
+        return APIResponse(200, "application/json", json_result);
+
+    } catch (const std::exception& e) {
+        log::error("Thermal schedule failed: " + std::string(e.what()));
+        std::stringstream json;
+        json << "{\"ok\":false,\"error\":\"" << e.what() << "\"}";
+        return APIResponse(500, "application/json", json.str());
+    }
 }
 
 /* POST /capsule/run - Attested capsule execution (stub) */

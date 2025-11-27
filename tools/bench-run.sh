@@ -385,7 +385,7 @@ EOF
 
 # Generate perfetto trace stub
 generate_perfetto_trace() {
-    cat > dist/trace.perfetto << 'EOF'
+cat > dist/trace.perfetto << 'EOF'
 # Perfetto trace stub for NYMPH 1.1
 # Real implementation will generate actual Perfetto trace format
 # This is a placeholder for Milestone 3 validation

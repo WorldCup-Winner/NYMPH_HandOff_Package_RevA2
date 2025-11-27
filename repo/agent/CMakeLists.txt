@@ -14,6 +14,7 @@ set(SOURCES
     src/fabric_zlta.cpp
     src/ai_onnx.cpp
     src/kvpin.cpp
+    src/thermal_stdio.cpp
 )
 
 # Create executable
